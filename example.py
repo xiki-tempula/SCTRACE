@@ -9,7 +9,7 @@ from sctrace.rawtrace import Record
 
 if __name__ == "__main__":
     
-    filename="./sctrace/samples/cluster.abf"
+    filename="/Users/zhiyiwu/Google Drive/test.abf"
     cluster = Record(filename)
     end = len(cluster.trace) * cluster.dt
 
