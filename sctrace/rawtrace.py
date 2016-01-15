@@ -5,7 +5,6 @@ Created on Mon Jan  4 11:59:45 2016
 @author: zhiyiwu
 """
 
-
 import numpy as np
 from sklearn import mixture
 # http://scikit-learn.org/stable/
@@ -13,6 +12,9 @@ from sklearn import mixture
 import scipy as sp
 
 from dcpyps import dcio
+
+LEN_BASELINE = 10e-3
+
 
 class Cluster():
     def __init__(self, trace = None, dt = None, t_start = 0, open_level = None, baseline = None):
@@ -41,6 +43,36 @@ class Cluster():
             return np.hstack([self.baseline[0], self.trace, self.baseline[1]])
         else:
             return self.trace
+
+    def cluster_loc(self):
+        '''
+        locate the location of the cluster which is used for Popen calculation.
+        '''
+        if self.baseline:
+            return [len(self.baseline[0]), len(self.baseline[0])+len(self.trace)]
+        else:
+            return [0, len(self.trace)]
+
+    def baseline_loc(self):
+        '''
+        return the location of the two baseline used for calculation.
+        '''
+        baseline_len = int(LEN_BASELINE / self.dt)
+        if self.baseline:
+            baseline_idx = []
+            if len(self.baseline[0]) > baseline_len:
+                baseline_idx.append([len(self.baseline[0]) - baseline_len, len(self.baseline[0])])
+            else:
+                baseline_idx.append([0, len(self.baseline[0])])
+
+            if len(self.baseline[1]) > baseline_len:
+                baseline_idx.append([len(self.baseline[0])+len(self.trace), len(self.baseline[0])+len(self.trace) + baseline_len])
+
+            return baseline_idx
+
+
+
+
 
 
     def __str__(self):
@@ -109,7 +141,7 @@ class Segment(object):
             half_amplitude = (estimate_open_level + estimate_baseline) / 2
             above_half_amplitude = np.where(self.trace > half_amplitude)[0]
             length_filter = int(np.ceil(self.filter_rising_t/self.dt))
-            sample_index = 10e-3 / self.dt
+            sample_index = int(LEN_BASELINE / self.dt)
             baseline_before = max(0, above_half_amplitude[0]-length_filter - sample_index)
             baseline_1 = self.trace[baseline_before: above_half_amplitude[0]-length_filter]
             baseline_after = min(len(self.trace), above_half_amplitude[-1]+length_filter+sample_index)

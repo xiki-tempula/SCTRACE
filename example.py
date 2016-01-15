@@ -24,10 +24,12 @@ if __name__ == "__main__":
     show()
 
 
-    new_segement = cluster.slice(0.1, 1.15, dtype = 'time')
+    new_segement = cluster.slice(0.5, 1.15, dtype = 'time')
     new_cluster = new_segement.find_cluster()
     popen = new_cluster.Popen()
     print(new_cluster)
     print(popen)
     print(new_cluster.open_level)
     plot(new_cluster.display_trace())
+    print(new_cluster.cluster_loc())
+    print(new_cluster.baseline_loc())
