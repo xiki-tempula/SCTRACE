@@ -7,7 +7,7 @@ Created on Mon Jan  4 11:59:45 2016
 
 
 import numpy as np
-from sklearn import mixture
+from sklearn import mixture, neighbors, grid_search
 # http://scikit-learn.org/stable/
 # Machine learning package
 
@@ -66,16 +66,33 @@ class Segment(object):
         t_start = adjusted_t_start, open_level = adjusted_open_level)
         return cluster
 
-    def amplitude_analysis(self):
+    def amplitude_analysis(self, method = 'GMM'):
         '''
         Automatical snalysis the baseline and conductance.
         self.baseline and self.open_level are set in this function but can also
         be set by other function or manually.
         '''
-        g = mixture.GMM(n_components=2)
-        temp = np.expand_dims(self.trace, axis=1)
-        e=g.fit(temp)
-        self.baseline, self.open_level = min(e.means_), max(e.means_)
+        temp = np.expand_dims(self.trace, axis=1)        
+        if method == 'GMM':
+            g = mixture.GMM(n_components=2)
+            g.means_ = np.array([[min(self.trace)],
+                                 [max(self.trace)]])
+            
+            e=g.fit(temp)
+            if e.converged_:
+                self.baseline, self.open_level = e.means_[0], e.means_[1]
+            else:
+                print('amplitude detection failed')
+        elif method == 'KDE':
+            bandwidth = grid_search.GridSearchCV(neighbors.KernelDensity(),
+                    {'bandwidth': np.linspace(0.01, 0.5, 30)},
+                    cv=20)
+            temp = np.random.choice(self.trace, size = 1000)
+            temp = np.expand_dims(temp, axis=1)
+            bandwidth.fit(temp)
+            print(bandwidth.best_params_)
+        
+    
 
     def detect_start_stop(self, trace, open_level):
         '''
