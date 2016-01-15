@@ -61,12 +61,14 @@ class Cluster():
         if self.baseline:
             baseline_idx = []
             if len(self.baseline[0]) > baseline_len:
-                baseline_idx.append([len(self.baseline[0]) - baseline_len, len(self.baseline[0])])
+                baseline_idx.append(len(self.baseline[0]) - baseline_len)
             else:
-                baseline_idx.append([0, len(self.baseline[0])])
+                baseline_idx.append(0)
 
             if len(self.baseline[1]) > baseline_len:
-                baseline_idx.append([len(self.baseline[0])+len(self.trace), len(self.baseline[0])+len(self.trace) + baseline_len])
+                baseline_idx.append(len(self.baseline[0])+len(self.trace) + baseline_len)
+            else:
+                baseline_idx.append(len(self.trace))
 
             return baseline_idx
 

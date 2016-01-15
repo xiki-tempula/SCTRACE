@@ -24,12 +24,16 @@ if __name__ == "__main__":
     show()
 
 
-    new_segement = cluster.slice(0.5, 1.15, dtype = 'time')
+    new_segement = cluster.slice(0, 1.15, dtype = 'time')
     new_cluster = new_segement.find_cluster()
     popen = new_cluster.Popen()
     print(new_cluster)
     print(popen)
     print(new_cluster.open_level)
     plot(new_cluster.display_trace())
-    print(new_cluster.cluster_loc())
-    print(new_cluster.baseline_loc())
+    
+    for x in new_cluster.baseline_loc():
+        baseline_plot = axvline(x = x, color = 'r')
+    for x in new_cluster.cluster_loc():
+        cluster_plot = axvline(x = x, color = 'k')
+    legend([baseline_plot, cluster_plot], ['baseline', 'cluster'])
