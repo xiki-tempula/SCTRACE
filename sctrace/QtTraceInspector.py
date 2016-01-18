@@ -40,13 +40,9 @@ class TraceInspector(QMainWindow):
         dock2.addWidget(layout)
         area.addDock(dock2, 'right')
 
-    def update(self):
-        pass
     def clear(self):
         self.filename = None
-        self.trace = None
-        self.seg1 = None
-        self.seg2 = None
+        self.record = None
 
 
 class TraceDock(Dock):
@@ -86,11 +82,6 @@ class TraceDock(Dock):
         self.pltCluster = pg.PlotWidget()
         w1.addWidget(self.pltCluster, row=5, col=0, colspan=2)
         
-#        self.adjustBtn = QPushButton('Adjust baseline')
-#        self.adjustBtn.clicked.connect(self.adjust_baseline)
-#        self.adjustBtn.setEnabled(False)
-#        w1.addWidget(self.adjustBtn, row=6, col=0)
-        
         self.popenBtn = QPushButton('Calculate Popen')
         self.popenBtn.clicked.connect(self.calc_Popen)
         self.popenBtn.setEnabled(False)
@@ -99,19 +90,6 @@ class TraceDock(Dock):
         w1.addWidget(self.label2, row=7, col=1)
 
         self.addWidget(w1)
-        
-    def adjust_baseline(self):
-        pass
-        
-    def calc_Popen(self):
-        cluster = self.cluster.find_cluster()
-        self.popen = cluster.Popen()
-        self.clusterOpenLevel = cluster.open_level
-        text = ('{0:.3f},\t{1:.3f},\t{2:.3f},\t{3:.1f},'.
-            format(cluster.get_t_start(), cluster.get_t_end()-cluster.get_t_start(), 
-            cluster.Popen(), cluster.open_level))
-        self.parent.textBox.append(text)
-        self.update_cluster()
     
     def update(self):
         
@@ -136,10 +114,14 @@ class TraceDock(Dock):
         self.seg1 = self.parent.record.slice(self.seg1coor[0], self.seg1coor[1], dtype='time') 
         end = self.seg1.t_start + len(self.seg1.trace) * self.seg1.dt
         t = np.arange(self.seg1.t_start, end, self.seg1.dt)
+        if len(t) > len(self.seg1.trace):
+            t = np.delete(t, -1)
+        if len(t) < len(self.seg1.trace):
+            t = np.append(t, [t[-1]+self.seg1.dt])
         self.pltSegment.clear()
         self.pltSegment.plot(t, self.seg1.trace, pen='g')
         if (self.seg2coor) is None or (self.seg1.t_start > self.seg2coor[0]) or (end < self.seg2coor[1]):
-            self.seg2coor = (0.99*self.seg1.t_start + 0.01*end, end * 0.9)
+            self.seg2coor = (0.9*self.seg1.t_start + 0.1*end, 0.1*self.seg1.t_start + 0.9*end)
         self.seg2StartLn = pg.InfiniteLine(angle=90, movable=True, pen='r')
         self.seg2StartLn.setValue(self.seg2coor[0])
         self.seg2StartLn.sigPositionChangeFinished.connect(self.seg2Changed)
@@ -149,6 +131,7 @@ class TraceDock(Dock):
         self.pltSegment.addItem(self.seg2StartLn)
         self.pltSegment.addItem(self.seg2EndLn)
         self.popen = None
+        self.clusterOpenLevel = None
         
         # Plot cluster indicated by cursors in Segment plot
         self.cluster = self.parent.record.slice(self.seg2coor[0], self.seg2coor[1], dtype='time')
@@ -158,34 +141,48 @@ class TraceDock(Dock):
     def update_cluster(self):
         end = self.cluster.t_start + len(self.cluster.trace) * self.cluster.dt
         t = np.arange(self.cluster.t_start, end, self.cluster.dt)
+        if len(t) > len(self.cluster.trace):
+            t = np.delete(t, -1)
+        if len(t) < len(self.cluster.trace):
+            t = np.append(t, [t[-1]+self.cluster.dt])
         self.pltCluster.clear()
         self.pltCluster.plot(t, self.cluster.trace, pen='g')
-        self.baseLn = pg.InfiniteLine(angle=90, movable=True, pen='r')
-        if ((self.basecoor is None) or 
-                (self.basecoor < self.cluster.t_start) or 
-                (self.basecoor > end)):
-            self.basecoor = 0.9*self.cluster.t_start + 0.1*end
-        self.baseLn.setValue(self.basecoor)
-        self.baseLn.sigPositionChangeFinished.connect(self.baseChanged)
-        self.pltCluster.addItem(self.baseLn)
+        
+#        self.baseLn = pg.InfiniteLine(angle=90, movable=True, pen='r')
+#        if ((self.basecoor is None) or 
+#                (self.basecoor < self.cluster.t_start) or 
+#                (self.basecoor > end)):
+#            self.basecoor = 0.9*self.cluster.t_start + 0.1*end
+#        self.baseLn.setValue(self.basecoor)
+#        self.baseLn.sigPositionChangeFinished.connect(self.baseChanged)
+#        self.pltCluster.addItem(self.baseLn)
         
         if self.clusterOpenLevel:
             self.clusterOpenLn = pg.InfiniteLine(angle=0, movable=True, pen='y')
             self.clusterOpenLn.setValue(self.clusterOpenLevel)
-            self.clusterOpenLn.sigPositionChangeFinished.connect(self.clusterOpenChanged)
+#            self.clusterOpenLn.sigPositionChangeFinished.connect(self.clusterOpenChanged)
             self.pltCluster.addItem(self.clusterOpenLn)
             
-#        if self.popen:
-#            self.label2.setText('Cluster Popen = {0:.6f}'.format(self.popen))
-        
-    def clusterOpenChanged(self):
-        pass
 
-    def baseChanged(self):
-        self.basecoor = self.baseLn.value()
-        points = int((self.basecoor - self.cluster.t_start) / self.cluster.dt)
-        av = np.average(self.cluster.trace[:points])
-        self.cluster.trace -= av
+#    def clusterOpenChanged(self):
+#        pass
+
+#    def baseChanged(self):
+#        self.basecoor = self.baseLn.value()
+#        points = int((self.basecoor - self.cluster.t_start) / self.cluster.dt)
+#        av = np.average(self.cluster.trace[:points])
+#        self.cluster.trace -= av
+#        self.update_cluster()
+
+    def calc_Popen(self):
+        cluster = self.cluster.find_cluster()
+        self.cluster.trace -= self.cluster.baseline
+        self.popen = cluster.Popen()
+        self.clusterOpenLevel = cluster.open_level
+        text = ('{0:.3f},\t{1:.3f},\t{2:.3f},\t{3:.1f},'.
+            format(cluster.get_t_start(), cluster.get_t_end()-cluster.get_t_start(), 
+            cluster.Popen(), cluster.open_level))
+        self.parent.textBox.append(text)
         self.update_cluster()
         
     def seg1Changed(self):
@@ -199,6 +196,7 @@ class TraceDock(Dock):
         self.update()
 
     def load(self):
+        self.clear()
         self.parent.filename = QFileDialog.getOpenFileName(self.parent,
             "Open single-channel record...",
             self.parent.path, 
@@ -212,14 +210,21 @@ class TraceDock(Dock):
         text = 'Start [s],\tLength [s],\tPopen,\tAmplitude [pA],'
         self.parent.textBox.append(text)
         
+        
         self.update()
         self.clearBtn.setEnabled(True)
         self.popenBtn.setEnabled(True)
-#        self.adjustBtn.setEnabled(True)
               
     def clear(self):
         
-        self.update()
+        self.seg1coor = None
+        self.seg2coor = None
+        self.basecoor = None
+        self.seg1 = None
+        self.cluster = None
+        self.popen = None
+        self.clusterOpenLevel = None
+        
         self.pltCluster.clear()
         self.pltTrace.clear()
         self.pltSegment.clear()
